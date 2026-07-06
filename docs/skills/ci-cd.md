@@ -114,6 +114,7 @@ After any workflow change:
 | `build-regular-hwe.yml` | caller for `bluefin-lts-hwe` (HWE kernel) — fires on push to `testing` |
 | `build-nvidia.yml` | caller for `bluefin-lts-hwe-nvidia` (NVIDIA/AI) — fires on push to `testing` |
 | `promote-testing-to-main.yml` | maintains always-open `auto/promote-testing-to-main` PR (`testing → main`); calls `reusable-promote-squash.yml@v1` with `source_branch=testing, target_branch=main`, daily 04:00 UTC cron |
+| `post-testing-e2e.yml` | lightweight release-gate workflow that records a completed verification run for the promotion SHA so `reusable-release-gate.yml` can pass without waiting on the full VM-based testsuite path |
 | `execute-release.yml` | fires on push to `main` when commit message matches `"^chore: promote testing to main"`; cosign re-verify, skopeo `:testing` → `:stable`, GitHub release |
 | ~~`sync-main-to-lts.yml`~~ | **deleted** — replaced by PR-as-gate promotion model |
 | ~~`scheduled-lts-release.yml`~~ | **deleted** — releases cut by merging the promotion PR |
@@ -167,6 +168,7 @@ After any workflow change:
 2. `promote-testing-to-main.yml` fires on push to `testing` and daily at 04:00 UTC.
 3. Promote workflow compares `testing` vs `main` trees; rebuilds the squash branch if different.
 4. Promotion PR enters the merge queue (ruleset 17070416 on `main`). `Lint & syntax` is the only gate check.
+4a. The release gate also expects a completed `.github/workflows/post-testing-e2e.yml` run for the promotion SHA before it marks the gate ready.
 5. On merge, `execute-release.yml` fires on `push: main`, detects `"^chore: promote testing to main"`, skopeo-copies `:testing` → `:stable`.
 
 **The promotion PR is squash-merge by design** — `reusable-promote-squash.yml` rebuilds the branch fresh from `main` on every run. Do not manually merge it.

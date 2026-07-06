@@ -45,7 +45,9 @@ testing → main → :stable
    When trees differ it rebuilds the squash branch and upserts the `auto/promote-testing-to-main` PR.
 2. The PR enters the merge queue (ruleset 17070416 on `main` requires squash + merge queue).
    Required check: `Lint & syntax`. No approvals needed.
-3. On merge, `execute-release.yml` fires on `push: main`, detects the commit message
+3. The reusable release gate also expects a completed `.github/workflows/post-testing-e2e.yml` run for the promotion SHA.
+   That workflow is intentionally lightweight so the gate can record a completed verification signal even when the full VM-based testsuite path is flaky.
+4. On merge, `execute-release.yml` fires on `push: main`, detects the commit message
    `"^chore: promote testing to main"`, skopeo-copies `:testing → :stable` for all three variants,
    and creates a GitHub release with changelog via `reusable-release.yml@v1`.
 
@@ -149,8 +151,7 @@ Always copy by digest, not tag — prevents races with concurrent pushes.
 
 ### `:testing` is published directly by the build
 
-Build workflows push `:testing` on every push to the `testing` branch. No E2E gate.
-PR builds validate that the image builds but do not push to GHCR.
+Build workflows push `:testing` on every push to the `testing` branch. The promotion gate also expects a completed `post-testing-e2e.yml` run for the promotion SHA, but PR builds still validate that the image builds without pushing to GHCR.
 
 ### `/boot/` is intentionally empty in the OCI image
 
@@ -194,3 +195,4 @@ NEW=$(podman run --rm ghcr.io/projectbluefin/bluefin-lts:stable bash -c 'sha256s
 - [ ] `source_branch: testing` and `target_branch: main`
 - [ ] `execute-release.yml` fires on `push: main`, detects `"^chore: promote testing to main"`, publishes `:stable`
 - [ ] Build workflows push `:testing` on push to `testing` branch
+- [ ] `.github/workflows/post-testing-e2e.yml` can produce a successful run for the promotion SHA when the release gate needs it
