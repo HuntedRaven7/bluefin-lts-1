@@ -21,7 +21,7 @@ on:
       - Build Bluefin LTS HWE
       - Build Bluefin Nvidia
     types: [completed]
-    branches: [testing]
+    branches: [main, testing]
 
 permissions:
   contents: read
@@ -35,11 +35,9 @@ jobs:
   e2e:
     if: |
       github.event_name == 'workflow_dispatch' ||
-      (
-        github.event_name == 'workflow_run' &&
-        github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.event == 'push'
-      )
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
