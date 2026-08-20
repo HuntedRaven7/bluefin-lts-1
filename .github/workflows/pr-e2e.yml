@@ -7,7 +7,7 @@ name: PR E2E Gate (advisory)
 on:
   pull_request:
     branches:
-      - testing
+      - main
     paths:
       - "Containerfile"
       - "build_scripts/**"
