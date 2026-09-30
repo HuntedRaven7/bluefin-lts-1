@@ -5,7 +5,7 @@ export default_tag := env("DEFAULT_TAG", "stable")
 export bib_image := env("BIB_IMAGE", "quay.io/centos-bootc/bootc-image-builder:latest")
 # LTS follows the current CoreOS 44 akmods stream; override explicitly when updating it.
 export coreos_stable_version := env("COREOS_STABLE_VERSION", "44")
-export coreos_stable_kernel := env("COREOS_STABLE_KERNEL", "7.0.12-201.fc44")
+export coreos_stable_kernel := env("COREOS_STABLE_KERNEL", "7.1.8-200.fc44")
 export HOME := env("HOME", "")
 export common_image := env("COMMON_IMAGE", "ghcr.io/projectbluefin/common:latest")
 export brew_image := env("BREW_IMAGE", "ghcr.io/ublue-os/brew:latest")
@@ -485,7 +485,17 @@ gen-sbom base="bluefin-lts" stream="stable" flavor="main" syft_cmd="syft":
     DEFAULT_TAG="$({{ just_executable() }} generate-default-tag {{ stream }} 1)"
     mkdir -p "sbom_out/${IMAGE_NAME}"
     OCI_DIR="sbom_out/${IMAGE_NAME}/oci-dir"
-    podman save --format oci-dir -o "${OCI_DIR}" "localhost/${IMAGE_NAME}:${DEFAULT_TAG}"
+    for attempt in 1 2 3; do
+        rm -rf "${OCI_DIR}"
+        if podman save --format oci-dir -o "${OCI_DIR}" "localhost/${IMAGE_NAME}:${DEFAULT_TAG}"; then
+            break
+        fi
+        if [[ "${attempt}" == "3" ]]; then
+            echo "podman save failed after ${attempt} attempts" >&2
+            exit 2
+        fi
+        echo "podman save failed; retrying (attempt $((attempt + 1))/3)" >&2
+    done
     {{ syft_cmd }} "oci-dir:${OCI_DIR}" \
         -o syft-json="sbom_out/${IMAGE_NAME}/sbom.json"
     # Fix ownership so subsequent non-root steps (sign-and-publish) can read/write the SBOM
